@@ -34,8 +34,8 @@ class _SymlinkManagerScreenState extends State<SymlinkManagerScreen> {
   }
 
   Future<void> _loadSymlinks() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/symlinks.json');
+    final exeDir = File(Platform.resolvedExecutable).parent;
+    final file = File('${exeDir.path}/symlinks.json');
     if (file.existsSync()) {
       final jsonData = jsonDecode(await file.readAsString());
       setState(() {
@@ -45,9 +45,20 @@ class _SymlinkManagerScreenState extends State<SymlinkManagerScreen> {
   }
 
   Future<void> _saveSymlinks() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/symlinks.json');
+    final exeDir = File(Platform.resolvedExecutable).parent;
+    final file = File('${exeDir.path}/symlinks.json');
     await file.writeAsString(jsonEncode(symlinks));
+  }
+
+  Future<void> _deleteSymlinksFile() async {
+    final exeDir = File(Platform.resolvedExecutable).parent;
+    final file = File('${exeDir.path}/symlinks.json');
+    if (file.existsSync()) {
+      await file.delete();
+      setState(() {
+        symlinks.clear();
+      });
+    }
   }
 
   void _pickSource(bool isFolder) async {
@@ -153,12 +164,41 @@ class _SymlinkManagerScreenState extends State<SymlinkManagerScreen> {
     }
   }
 
+  void _showClearHistoryConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Clear History'),
+          content: Text('Are you sure you want to clear the symlink history?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteSymlinksFile();
+                Navigator.pop(context);
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Symlink Manager'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.delete_outline),
+            onPressed: _showClearHistoryConfirmation,
+          ),
           IconButton(
             icon: Icon(Icons.info_outline),
             onPressed: _showAppInfo,
